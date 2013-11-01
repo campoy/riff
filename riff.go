@@ -1,5 +1,5 @@
-// The package riff provides a reader for RIFF (Resource Interchange File
-// Format) files as described in
+// The package riff provides reading and writing operations for
+// RIFF (Resource Interchange File Format) files as described in
 // http://en.wikipedia.org/wiki/Resource_Interchange_File_Format
 package riff
 
