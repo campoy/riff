@@ -2,6 +2,7 @@ package riff
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -9,10 +10,10 @@ import (
 
 func compare(t *testing.T, a, b *Chunk) {
 	if a.ID != b.ID {
-		t.Errorf("id: %s != %s", a.ID, b.ID)
+		t.Errorf("ID: %s != %s", a.ID, b.ID)
 	}
 	if a.Len != b.Len {
-		t.Errorf("len: %v != %v", a.Len, b.Len)
+		t.Errorf("Data: %v != %v", a.Len, b.Len)
 	}
 	if a.ListID != b.ListID {
 		t.Errorf("listId: %s != %s", a.ListID, b.ListID)
@@ -20,7 +21,7 @@ func compare(t *testing.T, a, b *Chunk) {
 	la := len(a.Chunks)
 	lb := len(b.Chunks)
 	if la != lb {
-		t.Errorf("number of chunks: %v != %v", la, lb)
+		t.Errorf("number of Chunks: %v != %v", la, lb)
 	}
 	for i := 0; i < la && i < lb; i++ {
 		compare(t, a.Chunks[i], b.Chunks[i])
@@ -34,9 +35,9 @@ func TestReader(t *testing.T) {
 	}
 	defer f.Close()
 
-	c, err := ReadChunk(f)
+	c, err := NewDecoder(f).Decode()
 	if err != nil {
-		t.Errorf("ReadFrom: %v", err)
+		t.Fatalf("ReadFrom: %v", err)
 	}
 
 	exp := &Chunk{ID: NewID("RIFF"), Len: 7944,
@@ -64,9 +65,9 @@ func TestWriter(t *testing.T) {
 	}
 	defer f.Close()
 
-	c, err := ReadChunk(f)
+	c, err := NewDecoder(f).Decode()
 	if err != nil {
-		t.Errorf("ReadFrom: %v", err)
+		t.Fatalf("ReadFrom: %v", err)
 	}
 
 	if _, err := f.Seek(0, 0); err != nil {
@@ -90,5 +91,29 @@ func TestWriter(t *testing.T) {
 			t.Fatalf("wrong char, expected %v got %v", fAll[i], bAll[i])
 		}
 	}
+}
 
+func TestFuncs(t *testing.T) {
+	f, err := os.Open("data/hand.wav")
+	if err != nil {
+		t.Fatalf("open test file: %v", err)
+	}
+	defer f.Close()
+
+	d := NewDecoder(f)
+	called := false
+	id := NewID("fmt ")
+	d.Map(id, func(r io.Reader) (interface{}, error) {
+		called = true
+		return "great", nil
+	})
+
+	_, err = d.Decode()
+	if err != nil {
+		t.Fatalf("ReadFrom: %v", err)
+	}
+
+	if !called {
+		t.Errorf("The function was not called")
+	}
 }
